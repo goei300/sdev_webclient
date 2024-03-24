@@ -10,7 +10,6 @@ Widget::Widget(QWidget *parent)
     //socket_.connect();
 
     //socket_.readyRead();
-    init();
     QObject::connect(&socket_t, &QAbstractSocket::connected,this, &Widget::doConnected);
     QObject::connect(&socket_t, &QAbstractSocket::disconnected,this,&Widget::doDisconnected);
     QObject::connect(&socket_t, &QAbstractSocket::readyRead,this,&Widget::doReadyRead);
@@ -18,7 +17,7 @@ Widget::Widget(QWidget *parent)
     QObject::connect(&socket_s, &QAbstractSocket::connected,this, &Widget::doConnected);
     QObject::connect(&socket_s, &QAbstractSocket::disconnected,this,&Widget::doDisconnected);
     QObject::connect(&socket_s, &QAbstractSocket::readyRead,this,&Widget::doReadyRead);
-
+    init();
 }
 
 Widget::~Widget()
@@ -29,6 +28,8 @@ Widget::~Widget()
 void Widget::init(){
     ui->pbDisconnect->setEnabled(st);
     ui->pbConnect->setEnabled(!st);
+    ui->pbSend->setEnabled(st);
+    ui->cbTls->setEnabled(!st);
 }
 void Widget::doConnected(){
     ui->pteMessage->insertPlainText("conntected\n");
@@ -50,10 +51,14 @@ void Widget::on_pbConnect_clicked()
 {
     switch(port)
     {
-    case TCP:
-        socket_t.connectToHost(ui->leHost->text(),80);
-    case TLS:
-        socket_s.connectToHostEncrypted(ui->leHost->text(), 443);
+        case TCP:
+            ui->pteMessage->insertPlainText("TCP ON! \n");
+            socket_t.connectToHost(ui->leHost->text(),80);
+            break;
+        case TLS:
+            ui->pteMessage->insertPlainText("TLS ON! \n");
+            socket_s.connectToHostEncrypted(ui->leHost->text(), 443);
+            break;
     }
 
 }
@@ -61,28 +66,33 @@ void Widget::on_pbConnect_clicked()
 
 void Widget::on_pbDisconnect_clicked()
 {
-    switch(port)
-    {
-    case TCP:
-        socket_t.close();
-    case TLS:
-        socket_s.close();
+    if (socket_t.state() == QAbstractSocket::ConnectedState) {
+            socket_t.close();
+            ui->pteMessage->insertPlainText("TCP Disconnected\n");
+    }
+
+    if (socket_s.state() == QAbstractSocket::ConnectedState) {
+            socket_s.close();
+            ui->pteMessage->insertPlainText("TLS Disconnected\n");
     }
 }
-
 
 void Widget::on_pbSend_clicked()
 {
     switch(port)
     {
     case TCP:
-        socket_t.write(ui->pteSend->toPlainText().toUtf8());
+            if (socket_t.state() == QAbstractSocket::ConnectedState) {
+                socket_t.write(ui->pteSend->toPlainText().toUtf8());
+            }
+            break;
     case TLS:
-        socket_s.write(ui->pteSend->toPlainText().toUtf8());
+            if (socket_s.state() == QAbstractSocket::ConnectedState) {
+                socket_s.write(ui->pteSend->toPlainText().toUtf8());
+            }
+            break;
     }
 }
-
-
 
 void Widget::on_pbClear_clicked()
 {
@@ -94,6 +104,3 @@ void Widget::on_cbTls_stateChanged(int arg1)
 {
     port = arg1==2 ? 1 : 0;
 }
-
-
-
