@@ -7,6 +7,33 @@ Widget::Widget(QWidget *parent)
     , ui(new Ui::Widget)
 {
     ui->setupUi(this);
+
+    QFile file("settings.txt");
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&file);
+
+        // 화면 위치 불러오기
+        QString line = in.readLine();
+        QStringList parts = line.split(",");
+        if (parts.size() == 2) {
+            int x = parts.at(0).toInt();
+            int y = parts.at(1).toInt();
+            this->move(x, y);
+        }
+
+        // LineEdit 내용 불러오기
+        if (!in.atEnd()) {
+            ui->leHost->setText(in.readLine());
+        }
+
+        // CheckBox 상태 불러오기
+        if (!in.atEnd()) {
+            QString checked = in.readLine();
+            ui->cbTls->setChecked(checked == "true");
+        }
+    }
+    file.close();
+
     //socket_.connect();
 
     //socket_.readyRead();
@@ -22,6 +49,21 @@ Widget::Widget(QWidget *parent)
 
 Widget::~Widget()
 {
+    QFile file("settings.txt");
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+
+        // 화면 위치 저장
+        out << this->pos().x() << "," << this->pos().y() << "\n";
+
+        // LineEdit 내용 저장
+        out << ui->leHost->text() << "\n";
+
+        // CheckBox 상태 저장 (체크되었는지)
+        out << (ui->cbTls->isChecked() ? "true" : "false") << "\n";
+    }
+    file.close();
+
     delete ui;
 }
 
